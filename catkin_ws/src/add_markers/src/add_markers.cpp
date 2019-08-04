@@ -1,11 +1,22 @@
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+
+double poseAMCLx = 0.;
+double poseAMCLy = 0.;
+
+void poseAMCLCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msgAMCL) {
+  poseAMCLx = msgAMCL->pose.pose.position.x;
+  poseAMCLy = msgAMCL->pose.pose.position.y;
+  ROS_INFO("get message from AMCL.");
+}
 
 int main( int argc, char** argv ) {
   ros::init(argc, argv, "add_markers");
   ros::NodeHandle n;
   ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1);
-
+  ros::Subscriber sub_amcl = n.subscribe("amcl_pose", 100, poseAMCLCallback);  
+  
   // Set our initial shape type to be a cube
   uint32_t shape = visualization_msgs::Marker::CUBE;
 
@@ -32,7 +43,6 @@ int main( int argc, char** argv ) {
     // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
     if (marker_phase == 1) {
       marker.action = visualization_msgs::Marker::DELETE;
-      ROS_INFO("No marker is shown.");
     } else {
       marker.action = visualization_msgs::Marker::ADD;
       if (marker_phase == 0) {
@@ -40,13 +50,11 @@ int main( int argc, char** argv ) {
 	marker.pose.position.x = -8.5;
 	marker.pose.position.y = -1.0;
 	marker.pose.position.z = 0.0;
-	ROS_INFO("show a marker at pickup zone.");
       } else {
 	// drop off zone
 	marker.pose.position.x = -0.5;
 	marker.pose.position.y = -1.0;
 	marker.pose.position.z = 0.0;
-	ROS_INFO("show a marker at drop off zone.");
       }
       marker.pose.orientation.x = 0.0;
       marker.pose.orientation.y = 0.0;
@@ -78,8 +86,21 @@ int main( int argc, char** argv ) {
 
     ROS_INFO("wait for 5 seconds.");
     sleep(5);
-    if (marker_phase < 2) {
-      marker_phase++;
+
+    if (marker_phase == 0) {
+      double dx = poseAMCLx + 8.5;
+      double dy = poseAMCLy + 1.0;
+      if (dx * dx + dy * dy < 1.0) {
+	marker_phase++;
+	ROS_INFO("picked up!");
+      }
+    } else if (marker_phase == 1) {
+      double dx = poseAMCLx + 0.5;
+      double dy = poseAMCLy + 1.0;
+      if (dx * dx + dy * dy < 1.0) {
+	marker_phase++;
+	ROS_INFO("dropped off!");
+      }
     }
   }
 }
