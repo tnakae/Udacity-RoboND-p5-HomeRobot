@@ -1,0 +1,20 @@
+global_costmap:
+  obstacle_layer:
+    obstacle_range: 0.5  # 2.5
+    raytrace_range: 1.0  # 3.0
+  inflation_layer:
+    cost_scaling_factor:  10.0
+    inflation_radius:     0.3
+
+local_costmap:
+  obstacle_layer:
+    obstacle_range: 0.5  # 2.5
+    raytrace_range: 1.0  # 3.0
+  inflation_layer:
+    cost_scaling_factor:  10.0
+    inflation_radius:     0.3
+
+DWAPlannerROS:
+  max_rot_vel: 1.0
+  acc_lim_theta: 6.0
+
