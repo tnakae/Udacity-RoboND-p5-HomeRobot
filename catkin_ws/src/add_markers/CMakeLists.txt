@@ -8,6 +8,7 @@ project(add_markers)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  nav_msgs
   roscpp
   visualization_msgs
 )
@@ -198,4 +199,5 @@ include_directories(
 # catkin_add_nosetests(test)
 
 add_executable(add_markers src/add_markers.cpp)
+add_dependencies(add_markers nav_msgs_generate_messages_cpp)
 target_link_libraries(add_markers ${catkin_LIBRARIES})

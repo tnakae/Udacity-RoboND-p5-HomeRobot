@@ -1,21 +1,21 @@
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <nav_msgs/Odometry.h>
 
-double poseAMCLx = 0.;
-double poseAMCLy = 0.;
+double pose_x = 0.;
+double pose_y = 0.;
 
-void poseAMCLCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msgAMCL) {
-  poseAMCLx = msgAMCL->pose.pose.position.x;
-  poseAMCLy = msgAMCL->pose.pose.position.y;
-  ROS_INFO("get message from AMCL.");
+void poseCallback(const nav_msgs::Odometry::ConstPtr& msg) {
+  pose_x = msg->pose.pose.position.x;
+  pose_y = msg->pose.pose.position.y;
 }
 
 int main( int argc, char** argv ) {
   ros::init(argc, argv, "add_markers");
-  ros::NodeHandle n;
-  ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1);
-  ros::Subscriber sub_amcl = n.subscribe("amcl_pose", 100, poseAMCLCallback);  
+  ros::NodeHandle n1;
+  ros::Publisher marker_pub = n1.advertise<visualization_msgs::Marker>("visualization_marker", 1);
+  ros::NodeHandle n2;
+  ros::Subscriber sub_pose = n2.subscribe("odom", 100, poseCallback);  
   
   // Set our initial shape type to be a cube
   uint32_t shape = visualization_msgs::Marker::CUBE;
@@ -47,8 +47,8 @@ int main( int argc, char** argv ) {
       marker.action = visualization_msgs::Marker::ADD;
       if (marker_phase == 0) {
 	// pickup zone
-	marker.pose.position.x = -8.5;
-	marker.pose.position.y = -1.0;
+	marker.pose.position.x = -0.5;
+	marker.pose.position.y = -4.0;
 	marker.pose.position.z = 0.0;
       } else {
 	// drop off zone
@@ -84,20 +84,29 @@ int main( int argc, char** argv ) {
     }
     marker_pub.publish(marker);
 
-    ROS_INFO("wait for 5 seconds.");
-    sleep(5);
-
+    ros::Rate sleep_rate(100);
+    for (int counter = 0; counter < 20; counter++) {
+      ros::spinOnce();
+      sleep_rate.sleep();
+    }
+    
     if (marker_phase == 0) {
-      double dx = poseAMCLx + 8.5;
-      double dy = poseAMCLy + 1.0;
-      if (dx * dx + dy * dy < 1.0) {
+      double dx = pose_x + 0.5;
+      double dy = pose_y + 4.0;
+      double dist_square = dx * dx + dy * dy;
+      ROS_INFO("dist^2 from pickup zone : %.2lf", dist_square);
+      ROS_INFO(" x = %.2lf, y=%.2lf", pose_x, pose_y);
+      if (dist_square < 0.75) {
 	marker_phase++;
 	ROS_INFO("picked up!");
       }
     } else if (marker_phase == 1) {
-      double dx = poseAMCLx + 0.5;
-      double dy = poseAMCLy + 1.0;
-      if (dx * dx + dy * dy < 1.0) {
+      double dx = pose_x + 0.5;
+      double dy = pose_y + 1.0;
+      double dist_square = dx * dx + dy * dy;
+      ROS_INFO("dist^2 from drop off zone : %.2lf", dist_square);
+      ROS_INFO(" x = %.2lf, y=%.2lf", pose_x, pose_y);
+      if (dist_square < 0.75) {
 	marker_phase++;
 	ROS_INFO("dropped off!");
       }
